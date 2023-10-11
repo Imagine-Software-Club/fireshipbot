@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { SupabaseAuthClient } from '@supabase/supabase-js/dist/module/lib/SupabaseAuthClient';
 import { Client, TextChannel } from 'discord.js';
-
+const axios = require('axios');
 interface Video{
   videoId: string;
   title: string;
@@ -26,9 +26,10 @@ const server = Bun.serve({
   const SUPABASE_URL: string = process.env.SUPABASE_URL;
   const SUPABASE_ANON_KEY: string = process.env.SUPABASE_ANON_KEY;
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const RAPID_API_KEY: string = process.env.RAPID_API_KEY;
 
   console.log(`Listening on localhost:${server.port}`);
-  
+  //Discord BOT//////////////////////////////////////////
   const TOKEN: string = process.env.BOT_TOKEN;
   const DISCORD_CHANNEL_ID: string = process.env.CHANNEL_ID;
 
@@ -40,19 +41,36 @@ const server = Bun.serve({
   });
 
   client.login(TOKEN);
+  //////////////////////////////////////////////////////
+  //RapidAPI///////////////////////////////////////////
+  const optionsRapid: Dict<any> = {
+    method: 'GET',
+    url: 'https://youtube-v31.p.rapidapi.com/search',
+  params: {
+    part: 'snippet,id',
+    channelId: 'UCsBjURrPoezykLs9EqgamOA',
+    order: 'date'
+  },
+  headers: {
+    'X-RapidAPI-Key': RAPID_API_KEY,
+    'X-RapidAPI-Host': 'youtube-v31.p.rapidapi.com'
+  }
+};
+  ///////////////////////////////////////////////////////
   
 
 
 
 
-  setInterval(() => checkForUpdate(API_KEY, CHANNEL_ID), 60000);
+  setInterval(() => checkForUpdate(API_KEY, CHANNEL_ID), 300000);
 
 const checkForUpdate = async(API_KEY: String, CHANNEL_ID: String): Promise<Video | null> =>  {
       
-      const URL:String = `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&channelId=${CHANNEL_ID}&part=snippet,id&order=date&maxResults=1`;
+      
       try{
-        const response = await fetch(URL);
-        const data  = await response.json();
+        const response = await axios.request(optionsRapid);
+        const data = response.data;
+        
         const title: string = data.items[0].snippet.title;
         const description: string = data.items[0].snippet.description;
         const videoId: string = data.items[0].id.videoId;
@@ -88,6 +106,7 @@ const checkForUpdate = async(API_KEY: String, CHANNEL_ID: String): Promise<Video
 
               }
           }
+          
         });
 
       
@@ -144,3 +163,16 @@ const sendMessageToChannel = (messageContent: string) => {
       console.error("Channel not found or isn't a text channel.");
   }
 };
+
+const getVideoRapid = async(): Promise<string | null> =>{
+    
+  try{
+    const response = await axios.request(optionsRapid);
+    console.log(response.data);
+    return "true";
+  }catch(error){
+    console.log(`Error: ${error}`);
+    return null;
+  }
+  
+}
